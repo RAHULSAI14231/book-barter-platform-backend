@@ -46,7 +46,7 @@ exports.getBooks = asyncHandler(async(req, res, next) => {
     const limit = parseInt(req.query.limit, 10) || 10;
     const startIndex = (page - 1) * limit;
     const endIndex = page * limit;
-    const total = await Book.countDocuments();
+    const totalBooks = await Book.countDocuments();
     const searchTerm = req.query.searchTerm;
     
     queryWithSearchTerm = Book.find({
@@ -58,20 +58,6 @@ exports.getBooks = asyncHandler(async(req, res, next) => {
     queryWithoutSearchTerm = Book.find().skip(startIndex).limit(limit);
     query = (!searchTerm) ? queryWithoutSearchTerm : queryWithSearchTerm;
     let books = await query;
-    const pagination = {};
-    if(endIndex <= books.length){
-        pagination.next = {
-            page: page + 1,
-            limit
-        }
-    }
-
-    if(startIndex > 0){
-        pagination.prev = {
-            page: page - 1,
-            limit
-        }
-    }
 
     if(!books){
         return next(new ErrorResponse('Books not found'), 404);
@@ -79,8 +65,10 @@ exports.getBooks = asyncHandler(async(req, res, next) => {
 
     res.status(200).json({
         success: true,
-        pagination,
         data: books,
+        currentPage: page,
+        totalBooks,
+        totalPages: Math.ceil(totalBooks / limit),
         count: books.length
     });
 });
